@@ -69,9 +69,10 @@ private:
 
 	enum {		
 		COL_LOCATION,
+		COL_MODULES,
 		COL_CPUUSAGE,
 		COL_TOTALCPU,
-		COL_ID,
+		COL_ID,		
 		NUM_COLUMNS
 	};
 

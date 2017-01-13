@@ -27,6 +27,7 @@ http://www.gnu.org/copyleft/gpl.html.
 #include "../profiler/symbolinfo.h"
 #include "../utils/osutils.h"
 #include <algorithm>
+#include <sstream>
 #include <wx/button.h>
 
 #define UPDATE_DELAY 1000	 // 1 second interval
@@ -51,6 +52,8 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 	itemCol.m_image = -1;
 	itemCol.m_text = _T("Location");
 	InsertColumn(COL_LOCATION, itemCol);
+	itemCol.m_text = _T("Modules");
+	InsertColumn(COL_MODULES, itemCol);
 	itemCol.m_text = _T("CPU");
 	InsertColumn(COL_CPUUSAGE, itemCol);
 	itemCol.m_text = _T("Total CPU");
@@ -59,6 +62,7 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 	InsertColumn(COL_ID, itemCol);
 	
 	SetColumnWidth(COL_LOCATION, 220);
+	SetColumnWidth(COL_MODULES, 110);
 	SetColumnWidth(COL_CPUUSAGE, 80);
 	SetColumnWidth(COL_TOTALCPU, 100);
 	SetColumnWidth(COL_ID, 60);
@@ -232,6 +236,7 @@ void ThreadList::fillList()
 	for(int i=0; i<(int)threads.size(); ++i)
 	{
 		this->SetItem(i, COL_LOCATION, threads[i].getLocation());
+		this->SetItem(i, COL_MODULES, threads[i].getModules());
 
 		char str[32];
 		if (threads[i].cpuUsage >= 0)
@@ -292,6 +297,7 @@ void ThreadList::updateTimes()
 		this->threads[i].cpuUsage = -1;
 		this->threads[i].totalCpuTimeMs = -1;
 		this->threads[i].setLocation(L"-");
+		this->threads[i].setModules(L"-");
 
 		HANDLE thread_handle = this->threads[i].getThreadHandle(); 
 		if (thread_handle == NULL)
@@ -319,6 +325,8 @@ void ThreadList::updateTimes()
 			this->threads[i].totalCpuTimeMs = (getTotal(KernelTime) + getTotal(UserTime)) / 10000;
 		}
 
+
+		std::set<std::wstring> modules;
 		try {
 			std::map<CallStack, SAMPLE_TYPE> callstacks;
 			std::map<PROFILER_ADDR, SAMPLE_TYPE> flatcounts;
@@ -332,15 +340,25 @@ void ThreadList::updateTimes()
 				// Collapse functions down
 				if (syminfo && stack.depth > 0)
 				{
+
+					bool hasFoundFirstOsModule = false;
 					for (size_t n=0;n<stack.depth;n++)
 					{
 						PROFILER_ADDR addr = stack.addr[n];
-						std::wstring mod = syminfo->getModuleNameForAddr(addr);
-						if (IsOsModule(mod))
+						std::wstring mod = syminfo->getModuleNameForAddr(addr);						
+						if (!mod.empty()) 
 						{
-							profaddr = addr;
-						} else {
-							break;
+							bool isOsModule = IsOsModule(mod);
+							if (isOsModule) 
+							{
+								if(!hasFoundFirstOsModule) 
+								{
+									profaddr = addr;
+									hasFoundFirstOsModule = true;
+								}
+							} else {
+								modules.insert(mod);
+							}
 						}
 					}
 
@@ -362,7 +380,7 @@ void ThreadList::updateTimes()
 		} catch( ProfilerExcep &)
 		{
 		}
-
+		
 		if (profaddr && syminfo)
 		{
 			std::wstring file;
@@ -373,6 +391,18 @@ void ThreadList::updateTimes()
 			
 			this->threads[i].setLocation(loc);
 		}
+
+		std::wstringstream modulesBuilder;
+		bool first = true;
+		for (std::set<std::wstring>::const_iterator it = modules.begin(); it != modules.end(); ++it) {
+			if (!first) {
+				modulesBuilder << L", ";
+			}
+			first = false;
+			modulesBuilder << *it;
+		}
+		this->threads[i].setModules(modulesBuilder.str());
+
 	}
 
 	fillList();
