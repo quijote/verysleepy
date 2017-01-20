@@ -27,6 +27,7 @@ http://www.gnu.org/copyleft/gpl.html.
 #include "../profiler/symbolinfo.h"
 #include "../utils/osutils.h"
 #include <algorithm>
+#include <sstream>
 #include <wx/button.h>
 
 #define UPDATE_DELAY 1000	 // 1 second interval
@@ -53,6 +54,8 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 	itemCol.m_image = -1;
 	itemCol.m_text = _T("Location");
 	InsertColumn(COL_LOCATION, itemCol);
+	itemCol.m_text = _T("Modules");
+	InsertColumn(COL_MODULES, itemCol);
 	itemCol.m_text = _T("CPU");
 	InsertColumn(COL_CPUUSAGE, itemCol);
 	itemCol.m_text = _T("Total CPU");
@@ -61,6 +64,7 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 	InsertColumn(COL_ID, itemCol);
 	
 	SetColumnWidth(COL_LOCATION, 220);
+	SetColumnWidth(COL_MODULES, 110);
 	SetColumnWidth(COL_CPUUSAGE, 80);
 	SetColumnWidth(COL_TOTALCPU, 100);
 	SetColumnWidth(COL_ID, 60);
@@ -133,6 +137,8 @@ static __int64 getTotal(FILETIME time)
 void ThreadList::OnTimer(wxTimerEvent& event)
 {
 	updateTimes();
+	updateLocationsAndModules();
+	fillList();
 }
 
 struct LocationAscPred { bool operator () (const ThreadInfo &a, const ThreadInfo &b) {
@@ -144,11 +150,11 @@ struct LocationDescPred { bool operator () (const ThreadInfo &a, const ThreadInf
 } };
 
 struct CpuUsageAscPred { bool operator () (const ThreadInfo &a, const ThreadInfo &b) {
-	return a.cpuUsage < b.cpuUsage;
+	return a.cpuUsage != b.cpuUsage ? a.cpuUsage < b.cpuUsage : a.totalCpuTimeMs < b.totalCpuTimeMs;
 } };
 
 struct CpuUsageDescPred { bool operator () (const ThreadInfo &a, const ThreadInfo &b) {
-	return a.cpuUsage > b.cpuUsage;
+	return a.cpuUsage != b.cpuUsage ? a.cpuUsage > b.cpuUsage : a.totalCpuTimeMs > b.totalCpuTimeMs;
 } };
 
 struct TotalCpuTimeAscPred { bool operator () (const ThreadInfo &a, const ThreadInfo &b) {
@@ -228,9 +234,26 @@ void ThreadList::updateSorting()
 	fillList();
 }
 
-int ThreadList::getNumDisplayedThreads() {
+int ThreadList::getNumDisplayedThreads()
+{
 	int numThreads = (int) threads.size();
 	return numThreads < MAX_NUM_DISPLAYED_THREADS ? numThreads : MAX_NUM_DISPLAYED_THREADS;
+}
+
+std::string formatDuration(__int64 durationMs)
+{
+	char str[32];
+	if (durationMs >= 0) {
+		__int64 upTimeS = durationMs / 1000;
+		int h = (int) (upTimeS / 3600);
+		int m = (int) ((upTimeS % 3600) / 60);
+		int s = (int) (upTimeS % 60);
+		sprintf(str, "%02d:%02d:%02d", h, m, s);
+	}
+	else {
+		strcpy(str, "-");
+	}
+	return str;
 }
 
 void ThreadList::fillList()
@@ -241,6 +264,7 @@ void ThreadList::fillList()
 	for(int i=0; i<numDisplayedThreads; ++i)
 	{
 		this->SetItem(i, COL_LOCATION, threads[i].getLocation());
+		this->SetItem(i, COL_MODULES, threads[i].getModules());
 
 		char str[32];
 		if (threads[i].cpuUsage >= 0)
@@ -249,11 +273,7 @@ void ThreadList::fillList()
 			strcpy(str, "-");
 		this->SetItem(i, COL_CPUUSAGE, str);
 
-		if (threads[i].totalCpuTimeMs >= 0)
-			sprintf(str, "%0.1f s", (double) (threads[i].totalCpuTimeMs) / 1000);
-		else
-			strcpy(str, "-");		
-		this->SetItem(i, COL_TOTALCPU, str);
+		this->SetItem(i, COL_TOTALCPU, formatDuration(threads[i].totalCpuTimeMs));
 
 		sprintf(str, "%d", threads[i].getID());
 		this->SetItem(i, COL_ID, str);		
@@ -274,8 +294,7 @@ void ThreadList::updateThreads(const ProcessInfo* processInfo, SymbolInfo *symIn
 		this->process_handle = processInfo->getProcessHandle();
 		this->syminfo = symInfo;
 
-		this->threads = processInfo->threads;
-		
+		this->threads = processInfo->threads;		
 		
 		int numDisplayedThreads = getNumDisplayedThreads();
 		for(int i=0; i<numDisplayedThreads; ++i)
@@ -287,8 +306,16 @@ void ThreadList::updateThreads(const ProcessInfo* processInfo, SymbolInfo *symIn
 		all_button->Enable(this->threads.size() != 0);
 
 		lastTime = wxGetLocalTimeMillis();
+		
 		updateTimes();
+		if (sort_column == COL_CPUUSAGE) 
+		{
+			// We need to wait a bit before we can get any useful CPU usage data to sort on.
+			Sleep(100);
+			updateTimes();
+		}		
 		updateSorting();
+		updateLocationsAndModules();
 		fillList();
 	}
 }
@@ -304,6 +331,7 @@ void ThreadList::updateTimes()
 		this->threads[i].cpuUsage = -1;
 		this->threads[i].totalCpuTimeMs = -1;
 		this->threads[i].setLocation(L"-");
+		this->threads[i].setModules(L"-");
 
 		HANDLE thread_handle = this->threads[i].getThreadHandle(); 
 		if (thread_handle == NULL)
@@ -329,18 +357,30 @@ void ThreadList::updateTimes()
 			}
 			this->threads[i].totalCpuTimeMs = (getTotal(KernelTime) + getTotal(UserTime)) / 10000;
 		}
-
-		if (i < MAX_NUM_THREAD_LOCATIONS) {
-			std::wstring loc = getLocation(thread_handle);
-			this->threads[i].setLocation(loc);
-		}
 	}
-
-	fillList();
 }
 
-std::wstring ThreadList::getLocation(HANDLE thread_handle) {
+void ThreadList::updateLocationsAndModules()
+{
+	for(int i=0; i<(int)this->threads.size(); ++i)
+	{
+		if (i < MAX_NUM_THREAD_LOCATIONS) {
+			HANDLE thread_handle = this->threads[i].getThreadHandle(); 
+			if (thread_handle != NULL) {
+				std::wstring location;
+				std::wstring modulesString;
+				getLocation(thread_handle, location, modulesString);
+				this->threads[i].setLocation(location);
+				this->threads[i].setModules(modulesString);
+			}
+		}
+	}
+}
+
+
+void ThreadList::getLocation(HANDLE thread_handle, std::wstring& location, std::wstring& modulesString) {
 	PROFILER_ADDR profaddr = 0;
+    std::set<std::wstring> modules;
 	try {
 		std::map<CallStack, SAMPLE_TYPE> callstacks;
 		std::map<PROFILER_ADDR, SAMPLE_TYPE> flatcounts;
@@ -354,15 +394,26 @@ std::wstring ThreadList::getLocation(HANDLE thread_handle) {
 			// Collapse functions down
 			if (syminfo && stack.depth > 0)
 			{
+				bool hasFoundFirstOsModule = false;
 				for (size_t n=0;n<stack.depth;n++)
 				{
 					PROFILER_ADDR addr = stack.addr[n];
-					std::wstring mod = syminfo->getModuleNameForAddr(addr);
-					if (IsOsModule(mod))
+					std::wstring mod = syminfo->getModuleNameForAddr(addr);						
+					if (!mod.empty()) 
 					{
-						profaddr = addr;
-					} else {
-						break;
+						bool isOsModule = IsOsModule(mod);
+						if (isOsModule) 
+						{
+							if(!hasFoundFirstOsModule) 
+							{
+								profaddr = addr;
+								hasFoundFirstOsModule = true;
+							}
+						} else {
+							if (modules.size() < 10) {
+								modules.insert(mod);
+							}
+						}
 					}
 				}
 
@@ -391,8 +442,19 @@ std::wstring ThreadList::getLocation(HANDLE thread_handle) {
 		int line;
 			
 		// Grab the name of the current IP location.
-		return syminfo->getProcForAddr(profaddr, file, line);
+		location = syminfo->getProcForAddr(profaddr, file, line);
+	} else {
+		location = L"-";
 	}
-
-	return L"-";
+	
+	std::wstringstream modulesBuilder;
+	bool first = true;
+	for (std::set<std::wstring>::const_iterator it = modules.begin(); it != modules.end(); ++it) {
+		if (!first) {
+			modulesBuilder << L", ";
+		}
+		first = false;
+		modulesBuilder << *it;
+	}
+	modulesString = modulesBuilder.str();
 }

@@ -37,6 +37,8 @@ ProcessInfo::ProcessInfo(DWORD id_, const std::wstring& name_, HANDLE process_ha
 	prevKernelTime.dwHighDateTime = prevKernelTime.dwLowDateTime = 0;
 	prevUserTime.dwHighDateTime = prevUserTime.dwLowDateTime = 0;
 	cpuUsage = -1;
+	totalCpuTimeMs = -1;
+	upTimeMs = -1;
 #ifdef _WIN64
 	is64Bits = Is64BitProcess(process_handle);
 #endif

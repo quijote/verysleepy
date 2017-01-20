@@ -172,8 +172,9 @@ ThreadPicker::ThreadPicker()
 	buttons->Add(time_check,										0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,	0);
 	buttons->Add(time_ctrl,											0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,	0);
 	buttons->AddStretchSpacer();
-	buttons->Add(all_button,										0, wxALIGN_RIGHT,							0);
-	buttons->Add(ok_button,											0, wxALIGN_RIGHT | wxLEFT,					5);
+	buttons->Add(all_button,                                        0, 0,                                       0);
+    buttons->Add(ok_button,                                         0, wxLEFT,                                  5);
+
 
 	bottomsizer->Add(buttons, 0, wxLEFT|wxRIGHT|wxEXPAND, 10);
 	bottomsizer->AddSpacer(8);

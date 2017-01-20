@@ -61,6 +61,7 @@ public:
   FILETIME prevKernelTime, prevUserTime;
   int cpuUsage;
   __int64 totalCpuTimeMs;
+  __int64 upTimeMs;
 
 private:
 	std::wstring name;

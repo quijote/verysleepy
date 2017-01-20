@@ -57,12 +57,15 @@ ProcessList::ProcessList(wxWindow *parent, const wxPoint& pos,
 	InsertColumn(COL_CPUUSAGE, itemCol);
 	itemCol.m_text = _T("Total CPU");
 	InsertColumn(COL_TOTALCPU, itemCol);
+	itemCol.m_text = _T("Up Time");
+	InsertColumn(COL_UPTIME, itemCol);
 	itemCol.m_text = _T("PID");
 	InsertColumn(COL_PID, itemCol);
 
 	SetColumnWidth(COL_NAME, 220);
 	SetColumnWidth(COL_CPUUSAGE, 80);
-	SetColumnWidth(COL_TOTALCPU, 100);	
+	SetColumnWidth(COL_TOTALCPU, 100);
+	SetColumnWidth(COL_UPTIME, 80);	
 	SetColumnWidth(COL_PID, 60);
 
 #ifdef _WIN64
@@ -190,11 +193,11 @@ struct NameDescPred { bool operator () (const ProcessInfo &a, const ProcessInfo 
 } };
 
 struct CpuUsageAscPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
-	return a.cpuUsage < b.cpuUsage;
+	return a.cpuUsage != b.cpuUsage ? a.cpuUsage < b.cpuUsage : a.totalCpuTimeMs < b.totalCpuTimeMs;
 } };
 
 struct CpuUsageDescPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
-	return a.cpuUsage > b.cpuUsage;
+	return a.cpuUsage != b.cpuUsage ? a.cpuUsage > b.cpuUsage : a.totalCpuTimeMs > b.totalCpuTimeMs;
 } };
 
 struct TotalCpuTimeAscPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
@@ -203,6 +206,14 @@ struct TotalCpuTimeAscPred { bool operator () (const ProcessInfo &a, const Proce
 
 struct TotalCpuTimeDescPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
 	return a.totalCpuTimeMs > b.totalCpuTimeMs;
+} };
+
+struct UpTimeAscPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
+	return a.upTimeMs < b.upTimeMs;
+} };
+
+struct UpTimeDescPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
+	return a.upTimeMs > b.upTimeMs;
 } };
 
 struct PIDAscPred { bool operator () (const ProcessInfo &a, const ProcessInfo &b) {
@@ -255,6 +266,14 @@ void ProcessList::sortByTotalCpuTime()
 		std::stable_sort(processes.begin(), processes.end(), TotalCpuTimeDescPred());
 }
 
+void ProcessList::sortByUpTime()
+{
+	if (sort_dir == SORT_UP)
+		std::stable_sort(processes.begin(), processes.end(), UpTimeAscPred());
+	else
+		std::stable_sort(processes.begin(), processes.end(), UpTimeDescPred());
+}
+
 void ProcessList::sortByPID()
 {
 	if (sort_dir == SORT_UP)
@@ -296,6 +315,7 @@ void ProcessList::updateSorting()
 		case COL_NAME: sortByName(); break;
 		case COL_CPUUSAGE: sortByCpuUsage(); break;
 		case COL_TOTALCPU: sortByTotalCpuTime(); break;
+		case COL_UPTIME: sortByUpTime(); break;
 		case COL_PID: sortByPID(); break;
 #ifdef _WIN64
 		case COL_TYPE: sortByType(); break;
@@ -311,18 +331,15 @@ void ProcessList::fillList()
 	{
 		this->SetItem(i, COL_NAME, processes[i].getName().c_str());
 
-		char str[32];
+		char str[64];
 		if (processes[i].cpuUsage >= 0)
 			sprintf(str, "%i%%", processes[i].cpuUsage);
 		else
 			strcpy(str, "-");
 		this->SetItem(i, COL_CPUUSAGE, str);
 
-		if (processes[i].totalCpuTimeMs >= 0)
-			sprintf(str, "%0.1f s", (double) (processes[i].totalCpuTimeMs) / 1000);
-		else
-			strcpy(str, "-");		
-		this->SetItem(i, COL_TOTALCPU, str);
+		this->SetItem(i, COL_TOTALCPU, formatDuration(processes[i].totalCpuTimeMs));
+		this->SetItem(i, COL_UPTIME, formatDuration(processes[i].upTimeMs));
 
 		sprintf(str, "%i", processes[i].getID());
 		this->SetItem(i, COL_PID, str);
@@ -450,6 +467,9 @@ void ProcessList::updateTimes()
 			}
 			processes[i].totalCpuTimeMs = (getTotal(KernelTime) + getTotal(UserTime)) / 10000;
 
+			FILETIME SystemTime;
+			GetSystemTimeAsFileTime(&SystemTime);
+			processes[i].upTimeMs = (getTotal(SystemTime) - getTotal(CreationTime)) / 10000; 
 		}
 	}
 

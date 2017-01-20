@@ -52,6 +52,9 @@ public:
 	const std::wstring& getLocation() const { return location; }
 	void setLocation(const std::wstring &loc) { location = loc; }
 
+	const std::wstring& getModules() const { return modules; }
+	void setModules(const std::wstring &m) { modules = m; }	
+
 	FILETIME prevKernelTime, prevUserTime;
 	// DE: 20090325 Threads now have CPU usage
 	int cpuUsage;
@@ -59,6 +62,7 @@ public:
 
 private:
 	std::wstring location;
+	std::wstring modules;
 	DWORD id;
 	HANDLE thread_handle;
 };

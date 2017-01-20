@@ -57,6 +57,7 @@ public:
 
 	void updateThreads(const ProcessInfo* processInfo, SymbolInfo *symInfo);
 	void updateTimes();
+	void updateLocationsAndModules();
 	void updateSorting();
 	void sortByLocation();
 	void sortByCpuUsage();
@@ -69,9 +70,10 @@ private:
 
 	enum {		
 		COL_LOCATION,
+		COL_MODULES,
 		COL_CPUUSAGE,
 		COL_TOTALCPU,
-		COL_ID,
+		COL_ID,		
 		NUM_COLUMNS
 	};
 
@@ -88,7 +90,7 @@ private:
 
 	void fillList();
 	int getNumDisplayedThreads();
-	std::wstring getLocation(HANDLE thread_handle);
+	void getLocation(HANDLE thread_handle, std::wstring& location, std::wstring& modulesString);
 };
 
 
@@ -97,6 +99,8 @@ enum
     THREADS_LIST = 4000,
     THREADS_LIST_TIMER = 4001
 };
+
+std::string formatDuration(__int64 durationMs);
 
 
 #endif //__PROCESSLIST_H_666_
