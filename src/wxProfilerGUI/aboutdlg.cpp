@@ -28,6 +28,7 @@ http://www.gnu.org/copyleft/gpl.html.
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include "../appinfo.h"
+#include "../version.h"
 
 AboutDlg::AboutDlg()
 {
@@ -143,5 +144,3 @@ void AboutDlg::AddDev(const wxString& name, const wxString& url, const wxString 
 		s->Add(new wxStaticText(this, wxID_ANY, L" (" + role + ")"));
 	m_sizerText->Add(s);
 }
-
-

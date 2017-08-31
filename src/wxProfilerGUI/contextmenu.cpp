@@ -40,30 +40,73 @@ enum {
 	ID_COPY,
 };
 
-class FunctionMenuWindow: public wxWindow
+class FunctionMenuWindow : public wxWindow
 {
 public:
 	int option;
-	FunctionMenuWindow(wxWindow *parent) : wxWindow(parent,-1), option(0) {}
-	DECLARE_EVENT_TABLE()
+
+	FunctionMenuWindow(wxWindow *parent) : wxWindow(parent, -1), option(0), mPushed(false)
+	{
+		this      ->Bind(wxEVT_MENU          , &FunctionMenuWindow::OnMenu     , this, wxID_ANY);
+		theMainWin->Bind(wxEVT_MENU_OPEN     , &FunctionMenuWindow::OnOpen     , this, wxID_ANY);
+		theMainWin->Bind(wxEVT_MENU_CLOSE    , &FunctionMenuWindow::OnClose    , this, wxID_ANY);
+		theMainWin->Bind(wxEVT_MENU_HIGHLIGHT, &FunctionMenuWindow::OnHighlight, this, wxID_ANY);
+	}
+
+	~FunctionMenuWindow()
+	{
+		theMainWin->Unbind(wxEVT_MENU_OPEN     , &FunctionMenuWindow::OnOpen     , this, wxID_ANY);
+		theMainWin->Unbind(wxEVT_MENU_CLOSE    , &FunctionMenuWindow::OnClose    , this, wxID_ANY);
+		theMainWin->Unbind(wxEVT_MENU_HIGHLIGHT, &FunctionMenuWindow::OnHighlight, this, wxID_ANY);
+	}
+
+private:
 	void OnMenu(wxCommandEvent& event)
 	{
 		option = event.GetId();
 	}
+
+	void OnOpen(wxMenuEvent &event)
+	{
+		this->mMenu = event.GetMenu();
+		if (!mPushed)
+		{
+			theMainWin->GetStatusBar()->PushStatusText(wxString());
+			mPushed = true;
+		}
+	}
+
+	void OnClose(wxMenuEvent &WXUNUSED(event))
+	{
+		if (mPushed)
+		{
+			theMainWin->GetStatusBar()->PopStatusText();
+			mPushed = false;
+		}
+	}
+
+	const wxString GetHelpString(wxMenuEvent &event)
+	{
+		if (event.GetMenuId() < 0)
+			return wxString();
+		else
+			return mMenu->GetHelpString(event.GetMenuId());
+	}
+
+	void OnHighlight(wxMenuEvent &event)
+	{
+		if (mPushed)
+			theMainWin->GetStatusBar()->SetStatusText(GetHelpString(event));
+		else
+		{
+			theMainWin->GetStatusBar()->PushStatusText(GetHelpString(event));
+			mPushed = true;
+		}
+	}
+
+	bool mPushed;
+	wxMenu* mMenu;
 };
-
-
-BEGIN_EVENT_TABLE(FunctionMenuWindow, wxWindow)
-EVT_MENU(ID_COLLAPSE_FUNC, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_COLLAPSE_MOD, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_SET_ROOT, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_FILTER_FUNC, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_FILTER_MODULE, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_FILTER_SOURCE, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_HIGHLIGHT, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_UNHIGHLIGHT, FunctionMenuWindow::OnMenu)
-EVT_MENU(ID_COPY, FunctionMenuWindow::OnMenu)
-END_EVENT_TABLE()
 
 void FunctionMenu(wxListCtrl *list, Database *database)
 {
@@ -103,8 +146,6 @@ void FunctionMenu(wxListCtrl *list, Database *database)
 
 	menu->Append(ID_COPY, "&Copy");
 	menu->AppendSeparator();
-
-	// Note: help texts specified here are not actually visible due to Windows/wxWidgets limitations.
 
 	if (selection.size() == 1)
 	{
@@ -211,4 +252,3 @@ void FunctionMenu(wxListCtrl *list, Database *database)
 		break;
 	}
 }
-

@@ -246,11 +246,13 @@ bool Profiler::sampleTarget(SAMPLE_TYPE timeSpent, SymbolInfo *syminfo)
 	DbgHelp *prevDbgHelp = NULL;
 	bool first = true;
 
-	while(true)
+	for (;;)
 	{
 		// See which module this IP is in.
 		Module *mod = syminfo->getModuleForAddr(ip);
 		DbgHelp *dbgHelp = mod ? mod->dbghelp : &dbgHelpMs;
+		if (!dbgHelp->Loaded)
+			break;
 
 		// Use whichever dbghelp stack walker is best for this module type.
 		// If we're switching between types, restart the stack walk from
@@ -302,7 +304,9 @@ bool Profiler::sampleTarget(SAMPLE_TYPE timeSpent, SymbolInfo *syminfo)
 		}
 	}
 
-	if (!ResumeThread(target_thread))
+	// TODO: Don't count samples for suspended threads
+
+	if (ResumeThread(target_thread) == 0xffffffff)
 		throw ProfilerExcep(L"ResumeThread failed.");
 
 	//NOTE: this has to go after ResumeThread.  Otherwise mem allocation needed by std::map

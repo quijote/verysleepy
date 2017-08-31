@@ -43,10 +43,10 @@ public:
 	/*=====================================================================
 	ThreadList
 	-----------
-	
+
 	=====================================================================*/
 	ThreadList(wxWindow *parent, const wxPoint& pos,
-               const wxSize& size, wxButton *ok_button, wxButton *all_button);
+			const wxSize& size, wxButton *ok_button, wxButton *all_button);
 
 	virtual ~ThreadList();
 
@@ -66,9 +66,9 @@ public:
 
 	std::vector<const ThreadInfo*> getSelectedThreads(bool all=false);
 private:
-    DECLARE_EVENT_TABLE()
+	DECLARE_EVENT_TABLE()
 
-	enum {		
+	enum {
 		COL_LOCATION,
 		COL_MODULES,
 		COL_CPUUSAGE,
@@ -96,15 +96,11 @@ private:
 
 enum
 {
-    THREADS_LIST = 4000,
-    THREADS_LIST_TIMER = 4001
+	THREADS_LIST = 4000,
+	THREADS_LIST_TIMER = 4001
 };
 
 std::string formatDuration(__int64 durationMs);
 
 
 #endif //__PROCESSLIST_H_666_
-
-
-
-

@@ -76,7 +76,7 @@ ProcessList::ProcessList(wxWindow *parent, const wxPoint& pos,
 
 	sort_column = COL_CPUUSAGE;
 	sort_dir = SORT_DOWN;
-	SetSortImage(sort_column, sort_dir); 
+	SetSortImage(sort_column, sort_dir);
 
 	timer.Start(1000); // 1 second interval
 }
@@ -168,7 +168,7 @@ void ProcessList::updateThreadList()
 	}
 }
 
-void ProcessList::OnTimer(wxTimerEvent& event)
+void ProcessList::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
 	if (firstUpdate)
 	{
@@ -337,7 +337,7 @@ void ProcessList::fillList()
 		else
 			strcpy(str, "-");
 		this->SetItem(i, COL_CPUUSAGE, str);
-
+		
 		this->SetItem(i, COL_TOTALCPU, formatDuration(processes[i].totalCpuTimeMs));
 		this->SetItem(i, COL_UPTIME, formatDuration(processes[i].upTimeMs));
 
@@ -417,7 +417,7 @@ void ProcessList::updateProcesses()
 			if(processInfo.getID() == selectedProcessId){
 				this->SetFocus();
 				this->EnsureVisible(index);
-			    int state = this->GetItemState(index, wxLIST_STATE_SELECTED);
+				int state = this->GetItemState(index, wxLIST_STATE_SELECTED);
 				state |= wxLIST_STATE_SELECTED;
 				this->SetItemState(index, state, wxLIST_STATE_SELECTED);
 				break;
@@ -440,40 +440,38 @@ void ProcessList::updateTimes()
 
 		__int64 coreCount = 0;
 
-		HANDLE process_handle = processes[i].getProcessHandle(); 
-		BOOL result = FALSE;
+		HANDLE process_handle = processes[i].getProcessHandle();
+		if (!process_handle)
+			continue;
+
 		FILETIME CreationTime, ExitTime, KernelTime, UserTime;
-		if (process_handle != NULL)
-		{
-			result = GetProcessTimes(
-				process_handle,
-				&CreationTime,
-				&ExitTime,
-				&KernelTime,
-				&UserTime
-				);
-			coreCount = GetCoresForProcess(process_handle);
-		}
+		BOOL result = GetProcessTimes(
+			process_handle,
+			&CreationTime,
+			&ExitTime,
+			&KernelTime,
+			&UserTime
+		);
+		if (!result)
+			continue;
 
-		if (result) 
-		{
-			__int64 kernel_diff = getDiff(processes[i].prevKernelTime, KernelTime);
-			__int64 user_diff = getDiff(processes[i].prevUserTime, UserTime);
-			processes[i].prevKernelTime = KernelTime;
-			processes[i].prevUserTime = UserTime;
+		coreCount = GetCoresForProcess(process_handle);
 
-			if (sampleTimeDiff > 0){
-				processes[i].cpuUsage = (((kernel_diff + user_diff) / 10000) * 100 / sampleTimeDiff) / coreCount;
-			}
-			processes[i].totalCpuTimeMs = (getTotal(KernelTime) + getTotal(UserTime)) / 10000;
+		__int64 kernel_diff = getDiff(processes[i].prevKernelTime, KernelTime);
+		__int64 user_diff = getDiff(processes[i].prevUserTime, UserTime);
+		processes[i].prevKernelTime = KernelTime;
+		processes[i].prevUserTime = UserTime;
 
-			FILETIME SystemTime;
-			GetSystemTimeAsFileTime(&SystemTime);
-			processes[i].upTimeMs = (getTotal(SystemTime) - getTotal(CreationTime)) / 10000; 
-		}
+		if (sampleTimeDiff > 0)
+			processes[i].cpuUsage = (((kernel_diff + user_diff) / 10000) * 100 / sampleTimeDiff) / coreCount;
+
+		processes[i].totalCpuTimeMs = (getTotal(KernelTime) + getTotal(UserTime)) / 10000;
+		
+		FILETIME SystemTime;
+		GetSystemTimeAsFileTime(&SystemTime);
+		processes[i].upTimeMs = (getTotal(SystemTime) - getTotal(CreationTime)) / 10000; 
+
 	}
 
 	fillList();
 }
-
-

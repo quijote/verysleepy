@@ -31,9 +31,12 @@ DbgHelp dbgHelpWineWow64;
 
 #define IMPORT(name) *(void **)&dest->name = GetProcAddress(hMod, #name)
 
-static void dbgHelpLoad(LPCWSTR name, DbgHelp* dest)
+static bool dbgHelpTryLoad(LPCWSTR name, DbgHelp* dest)
 {
-	HMODULE hMod = wenforce(LoadLibrary(name), L"Could not load " + std::wstring(name));
+	dest->Name = name;
+	HMODULE hMod = LoadLibrary(name);
+	if (!hMod)
+		return false;
 	IMPORT(StackWalk64);
 	IMPORT(SymFunctionTableAccess64);
 	IMPORT(SymGetModuleBase64);
@@ -51,22 +54,36 @@ static void dbgHelpLoad(LPCWSTR name, DbgHelp* dest)
 	IMPORT(SymLoadModuleExW);
 	IMPORT(SymSetDbgPrint); // Custom Wine extension
 	IMPORT(MiniDumpWriteDump);
+	dest->Loaded = true;
+	return true;
+}
+
+static void dbgHelpLoad(LPCWSTR name, DbgHelp* dest, const wxString& description)
+{
+	if (!dbgHelpTryLoad(name, dest))
+		wxLogWarning("Could not load " + wxString(name) + ": " + wxSysErrorMsg() + "\n" + description + " will be unavailable.");
 }
 
 bool dbgHelpInit()
 {
 	// Import the Microsoft dbghelp.dll
-	dbgHelpLoad(L"dbghelpms.dll", &dbgHelpMs);
+	if (!dbgHelpTryLoad(L"dbghelpms.dll", &dbgHelpMs))
+	{
+		// The latest version of dbghelp.dll requires a
+		// recent version of Windows to run. If loading
+		// that fails, fall back to an older version.
+		dbgHelpLoad(L"dbghelpms6.dll", &dbgHelpMs, "Microsoft debug information");
+	}
 
 	// Import the DrMingw dbghelp.dll
-	dbgHelpLoad(L"dbghelpdr.dll", &dbgHelpDrMingw);
+	dbgHelpLoad(L"dbghelpdr.dll", &dbgHelpDrMingw, "Dr. MinGW debug information");
 
 	// Import the Wine dbghelp.dll
-	dbgHelpLoad(L"dbghelpw.dll", &dbgHelpWine);
+	dbgHelpLoad(L"dbghelpw.dll", &dbgHelpWine, "Wine debug information");
 
 #ifdef _WIN64
 	// Import the Wine Wow64 dbghelp.dll
-	dbgHelpLoad(L"dbghelpw_wow64.dll", &dbgHelpWineWow64);
+	dbgHelpLoad(L"dbghelpw_wow64.dll", &dbgHelpWineWow64, "WoW64 Wine debug information");
 #endif
 
 	return true;

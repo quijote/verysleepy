@@ -29,6 +29,7 @@ http://www.gnu.org/copyleft/gpl.html.
 #include <wx/button.h>
 #include <wx/stattext.h>
 #include "../utils/except.h"
+#include "../appinfo.h"
 
 // IDs for the controls and the menu commands
 enum
@@ -41,11 +42,13 @@ enum
 	ProcWin_Options,
 	ProcWin_TimeCtrl,
 	ProcWin_TimeCheck,
+	ProcWin_Help_Documentation,
+	ProcWin_Help_Support,
 
 	// it is important for the id corresponding to the "About" command to have
 	// this standard value as otherwise it won't be handled properly under Mac
 	// (where it is special and put into the "Apple" menu)
-	ProcWin_About = wxID_ABOUT
+	ProcWin_Help_About = wxID_ABOUT
 };
 
 BEGIN_EVENT_TABLE(ThreadPicker, wxModalFrame)
@@ -58,7 +61,9 @@ EVT_MENU(ProcWin_Refresh, ThreadPicker::OnRefresh)
 EVT_MENU(ProcWin_Options, ThreadPicker::OnOptions)
 EVT_MENU(ProcWin_Download, ThreadPicker::OnDownload)
 EVT_MENU(ProcWin_Launch, ThreadPicker::OnLaunchExe)
-EVT_MENU(ProcWin_About, ThreadPicker::OnAbout)	
+EVT_MENU(ProcWin_Help_Documentation, ThreadPicker::OnDocumentation)
+EVT_MENU(ProcWin_Help_Support, ThreadPicker::OnSupport)
+EVT_MENU(ProcWin_Help_About, ThreadPicker::OnAbout)
 EVT_BUTTON(ProcWin_Refresh, ThreadPicker::OnRefresh)
 EVT_BUTTON(ProcWin_Download, ThreadPicker::OnDownload)
 EVT_CLOSE(ThreadPicker::OnClose)
@@ -78,7 +83,7 @@ void symLogCallback(const wchar_t *text)
 }
 
 ThreadPicker::ThreadPicker()
-:	wxModalFrame(NULL, -1, wxString(APPNAME), 
+:	wxModalFrame(NULL, -1, wxString(APPNAME),
 			 wxDefaultPosition, wxDefaultSize,
 			 wxDEFAULT_FRAME_STYLE)
 {
@@ -96,9 +101,11 @@ ThreadPicker::ThreadPicker()
 	menuTools->AppendSeparator();
 	menuTools->Append(ProcWin_Options, _T("&Options..."), _T("Opens the options dialog"));
 
-	// the "About" item should be in the help menu
 	wxMenu *menuHelp = new wxMenu;
-	menuHelp->Append(ProcWin_About, _T("&About...\tF1"), _T("Show about dialog"));
+	menuHelp->Append(ProcWin_Help_Documentation, _T("&Documentation\tF1"), _T("Visit the on-line documentation wiki on GitHub"));
+	menuHelp->Append(ProcWin_Help_Support, _T("&Support"), _T("Visit the on-line issue list on GitHub"));
+	menuHelp->AppendSeparator();
+	menuHelp->Append(ProcWin_Help_About, _T("&About..."), _T("Show about dialog"));
 
 	// now append the freshly created menu to the menu bar...
 	wxMenuBar *menuBar = new wxMenuBar();
@@ -202,54 +209,54 @@ ThreadPicker::ThreadPicker()
 	g_symLog = symLogCallback;
 }
 
-void ThreadPicker::OnOpen(wxCommandEvent& event)
+void ThreadPicker::OnOpen(wxCommandEvent& WXUNUSED(event))
 {
 	open_filename = ProfilerGUI::PromptOpen(this);
 	if (!open_filename.empty())
 		EndModal(OPEN);
 }
 
-void ThreadPicker::OnAttachProfiler(wxCommandEvent& event)
+void ThreadPicker::OnAttachProfiler(wxCommandEvent& WXUNUSED(event))
 {
 	if (TryAttachToProcess(false))
 		EndModal(ATTACH);
 }
 
-void ThreadPicker::OnAttachProfilerAll(wxCommandEvent& event)
+void ThreadPicker::OnAttachProfilerAll(wxCommandEvent& WXUNUSED(event))
 {
 	if (TryAttachToProcess(true))
 		EndModal(ATTACH);
 }
 
-void ThreadPicker::OnDoubleClicked(wxListEvent& event)
+void ThreadPicker::OnDoubleClicked(wxListEvent& WXUNUSED(event))
 {
 	if (TryAttachToProcess(false))
 		EndModal(ATTACH);
 }
 
-void ThreadPicker::OnClose(wxCloseEvent& event)
+void ThreadPicker::OnClose(wxCloseEvent& WXUNUSED(event))
 {
 	EndModal(QUIT);
 }
 
-void ThreadPicker::OnQuit(wxCommandEvent& event)
+void ThreadPicker::OnQuit(wxCommandEvent& WXUNUSED(event))
 {
 	EndModal(QUIT);
 }
 
-void ThreadPicker::OnRefresh(wxCommandEvent& event)
+void ThreadPicker::OnRefresh(wxCommandEvent& WXUNUSED(event))
 {
 	processlist->updateProcesses();
 }
 
-void ThreadPicker::OnOptions(wxCommandEvent& event)
+void ThreadPicker::OnOptions(wxCommandEvent& WXUNUSED(event))
 {
 	OptionsDlg dlg;
 	if (dlg.ShowModal() != wxID_OK)
 		return;
 }
 
-void ThreadPicker::OnDownload(wxCommandEvent& event)
+void ThreadPicker::OnDownload(wxCommandEvent& WXUNUSED(event))
 {
 	g_symProgress = new wxProgressDialog(APPNAME, "Downloading symbols...", 100, this);
 	processlist->reloadSymbols(true);
@@ -257,7 +264,7 @@ void ThreadPicker::OnDownload(wxCommandEvent& event)
 	g_symProgress = NULL;
 }
 
-void ThreadPicker::OnLaunchExe(wxCommandEvent& event)
+void ThreadPicker::OnLaunchExe(wxCommandEvent& WXUNUSED(event))
 {
 	wxString prevCmdPath;
 	config.Read("PrevLaunchPath", &prevCmdPath, "");
@@ -277,12 +284,22 @@ void ThreadPicker::OnLaunchExe(wxCommandEvent& event)
 	EndModal(RUN);
 }
 
-void ThreadPicker::OnAbout(wxCommandEvent& event)
+void ThreadPicker::OnDocumentation(wxCommandEvent& WXUNUSED(event))
+{
+	wxLaunchDefaultBrowser(GITURL "/wiki");
+}
+
+void ThreadPicker::OnSupport(wxCommandEvent& WXUNUSED(event))
+{
+	wxLaunchDefaultBrowser(GITURL "/issues");
+}
+
+void ThreadPicker::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
 	ProfilerGUI::ShowAboutBox();
 }
 
-void ThreadPicker::OnTimeCheck(wxCommandEvent& event)
+void ThreadPicker::OnTimeCheck(wxCommandEvent& WXUNUSED(event))
 {
 	if( time_check->IsChecked() )
 	{
@@ -351,10 +368,10 @@ void ThreadPicker::AttachToProcess(bool allThreads)
 	//------------------------------------------------------------------------
 	//Get handle to target process
 	//------------------------------------------------------------------------
-	attach_info->process_handle = processInfo->getProcessHandle(); 
+	attach_info->process_handle = processInfo->getProcessHandle();
 	attach_info->sym_info = processlist->takeSymbolInfo();
 	enforce(attach_info->sym_info, "No symbol info");
-	
+
 	// Check it didn't exit.
 	if (WaitForSingleObject(attach_info->process_handle, 0) == WAIT_OBJECT_0)
 		attach_info->process_handle = NULL;
@@ -389,4 +406,3 @@ void ThreadPicker::AttachToProcess(bool allThreads)
 	// DE: 20090325 attaches to specific a list of threads
 	enforce(attach_info->thread_handles.size(), "Cannot attach to any threads");
 }
-

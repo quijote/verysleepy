@@ -1,11 +1,27 @@
-﻿Very Sleepy
+﻿Very Sleepy [![Build status](https://ci.appveyor.com/api/projects/status/5gf55tjd7mc80b05/branch/master?svg=true)](https://ci.appveyor.com/project/CyberShadow/verysleepy/branch/master)
 -----------
 
 This is [Very Sleepy](http://www.codersnotes.com/sleepy), a polling Windows CPU profiler with a wxWidgets-based GUI.
 
+![Very Sleepy screenshot](https://dump.thecybershadow.net/12df19e403014f88f368da4c2d2482a2/1.png)
+
+### Features
+
+* Simple user interface
+* Microsoft Symbol Server support
+* [Command-line operation](https://github.com/VerySleepy/verysleepy/wiki/Command-Line-Usage)
+* [MinGW support](https://github.com/VerySleepy/verysleepy/wiki/Profiling-MinGW-Programs)
+* [Late symbol resolution](https://github.com/VerySleepy/verysleepy/wiki/Late-Symbol-Resolution)
+
+### Documentation
+
+Very Sleepy documentation is available on [the GitHub project wiki](https://github.com/VerySleepy/verysleepy/wiki).
+
 ### Download
 
-You can download an installer on [the project's website](http://www.codersnotes.com/sleepy), or from [the GitHub releases page](https://github.com/CyberShadow/verysleepy/releases).
+Official releases can be downloaded from [the project's website](http://www.codersnotes.com/sleepy), or from [the GitHub releases page](https://github.com/VerySleepy/verysleepy/releases).
+
+For the latest development version, you can download [the latest AppVeyor artifact](https://ci.appveyor.com/api/projects/CyberShadow/verysleepy/artifacts/setup.exe?branch=master).
 
 ### History
 
@@ -14,10 +30,21 @@ You can download an installer on [the project's website](http://www.codersnotes.
 * Rename project back to Very Sleepy (this fork repository is now the official repository)
 * Use [Dr. MinGW](https://github.com/jrfonseca/drmingw) to resolve MinGW symbols by default
 * Update Wine DbgHelp for Windows
+* Improve and greatly simplify build process ([#40](https://github.com/VerySleepy/verysleepy/pull/40))
+* Add continuous integration via [AppVeyor](https://ci.appveyor.com/project/CyberShadow/verysleepy)
+* Improve Visual Studio 2015 support ([#28](https://github.com/VerySleepy/verysleepy/issues/28))
+* More user interface fixes and improvements
 * Contributed by [Bernat Muñoz Garcia](https://github.com/shashClp):
-    * Use Scintilla for syntax highlighting
-* Contributed by [k4hvd1](https://github.com/VerySleepy/verysleepy/pull/30):
-    * Added command-line option `/a` to profile an existing process by its process ID
+    * Use Scintilla for syntax highlighting ([#16](https://github.com/VerySleepy/verysleepy/pull/16))
+* Contributed by [Ashod](https://github.com/Ashod):
+    * 64-bit fixes ([#21](https://github.com/VerySleepy/verysleepy/pull/21))
+* Contributed by [k4hvd1](https://github.com/k4hvd1):
+    * Added command-line option `/a` to profile an existing process by its process ID ([#30](https://github.com/VerySleepy/verysleepy/pull/30))
+* Contributed by [Markus Gaisbauer](https://github.com/quijote):
+    * Added "Total CPU time" column ([#37](https://github.com/VerySleepy/verysleepy/pull/37))
+    * Improved handling of processes with many threads ([#38](https://github.com/VerySleepy/verysleepy/pull/38))
+* Contributed by [Bernhard Schelling](https://github.com/schellingb):
+    * Added Callgrind format file export feature ([#46](https://github.com/VerySleepy/verysleepy/pull/46))
 
 ##### Version 0.90 (2014-12-23):
 
@@ -29,6 +56,8 @@ You can download an installer on [the project's website](http://www.codersnotes.
 * Fix problems caused by dbghelp.dll hijacking
 * Fix handling of symbols containing whitespace characters
 * More user interface improvements
+* Contributed by [Unknown W. Brackets](https://github.com/unknownbrackets):
+    * 64-bit fixes ([#6](https://github.com/VerySleepy/verysleepy/pull/6))
 * Contributed by Michael Vance:
     * Add CSV export for the callstack view
     * UI fixes and code cleanup
@@ -43,8 +72,9 @@ You can download an installer on [the project's website](http://www.codersnotes.
 * Add late symbol loading by saving a minidump during profiling
 * Install 32-bit version alongside 64-bit version
 * Contributed by [Richard Munn](https://github.com/benjymous):
-    * Added a time limit option to the interface
-    * Added function highlighting and filtering
+    * Added a time limit option to the interface ([#1](https://github.com/VerySleepy/verysleepy/pull/1))
+    * Added function highlighting and filtering ([#2](https://github.com/VerySleepy/verysleepy/pull/2))
+    * Interface improvements ([#3](https://github.com/VerySleepy/verysleepy/pull/3))
 
 ##### [First fork release](http://blog.thecybershadow.net/2013/01/11/very-sleepy-fork/) (2013-01-11):
 
@@ -59,65 +89,23 @@ Changes before this repository's creation can be found on [the project's website
 
 ### Building
 
-Prerequisites:
+#### Prerequisites
 
-* Visual C++ 2010 (or compatible, e.g. 2012)
-* [wxWidgets 2.9.5](http://sourceforge.net/projects/wxwindows/files/2.9.5/)
-  * Versions other than 2.9.5 might work, but may have compatibility issues.
+* Visual C++ 2010 or newer
+* [CMake](https://cmake.org/) (for Dr. MinGW)
+* [7-Zip](http://www.7-zip.org/) (for unpacking MinGW)
+* [InnoSetup 5](http://www.jrsoftware.org/isinfo.php) (for building an installer)
 
-After building wxWidgets (see below), you can build Sleepy using the project files (with the Visual Studio IDE or msbuild).
+#### Instructions
 
-#### Building wxWidgets
+Third party dependencies are registered using git submodules, so you will need to either clone with the `--recursive` flag, or run `git submodule update --init` after cloning.
 
-Run one of the Microsoft batch files to set up the Visual Studio environment:
+The `build.cmd` batch file will attempt to build Very Sleepy and its dependencies.
 
-    cd "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin"
-    vcvars32.bat           // for a regular 32-bit compile
-    vcvars64.bat           // for a regular 64-bit build
-    vcvarsx86_amd64.bat    // for a 64-bit cross-compile
-
-Now, from the wxWidgets `build\msw` directory:
-
-    nmake -f makefile.vc BUILD=debug SHARED=0 RUNTIME_LIBS=static
-
-NMAKE is part of Visual Studio, so vcvars should have added it to your path.
-
-Options:
-
-* For a release build, use `BUILD=release` instead.
-* For 64-bit, add `TARGET_CPU=AMD64`.
-* You could also use the Visual Studio project/solution files to build wxWidgets, however (as of 2.9.5) these are Win32-only.
-
-Finally, create an environment variable called `WXWIN`, and set it to the full path towards the wxWidgets directory (incl. trailing backslash).
-This variable in referenced in Sleepy's project files - Visual Studio must have in in its environment to be able to find wxWidgets.
-
-#### Wine DbgHelp
-
-To build the Wine version of DbgHelp (`dbghelpw.dll` and `dbghelpw_wow64.dll`), you need to have the Wine submodule (located in `src/dbghelpw/wine`).
-To do that, clone this repository with the `--recursive` flag, or, after cloning, run `git submodule init` and `git submodule update`.
-Once cloned, build the DbgHelp solution located in `src/dbghelpw/wine/dlls/dbghelp/vs`.
-
-If you do not want to build Wine DbgHelp from source,
-you can place `dbghelpw.dll` and `dbghelpw_wow64.dll` from a recent binary release of Very Sleepy
-into the `dbghelp_x86` and `dbghelp_x64` directories appropriately.
-
-#### Dr. MinGW DbgHelp
-
-The `dbghelpdr.dll` file is part of the [Dr. MinGW](https://github.com/jrfonseca/drmingw) project.
-See that project's [BUILD.md](https://github.com/jrfonseca/drmingw/blob/master/BUILD.md) for an overview of the build instructions.
-For Very Sleepy, you will need both a 32-bit and a 64-bit version, which you can build with e.g. these
-[32-bit][mingw32] and [64-bit][mingw64] MinGW releases and [this][build-bat] batch file.
-
-If you do not want to build Dr. MinGW's DbgHelp from source,
-you can place `dbghelpdr.dll` from a recent binary release of Very Sleepy (or Dr. MinGW, where it will be called `mgwhelp.dll`)
-into the `dbghelp_x86` and `dbghelp_x64` directories appropriately.
-
-  [mingw32]: http://sourceforge.net/projects/mingwbuilds/files/host-windows/releases/4.8.1/32-bit/threads-win32/dwarf/x32-4.8.1-release-win32-dwarf-rev5.7z/download
-  [mingw64]: http://sourceforge.net/projects/mingwbuilds/files/host-windows/releases/4.8.1/64-bit/threads-win32/seh/x64-4.8.1-release-win32-seh-rev5.7z/download
-  [build-bat]: https://gist.github.com/CyberShadow/839e458153787a298b6b
+Alternatively, you can build Dr. MinGW using the `thirdparty/drmingw_build_mingw.cmd` batch file, then use the Visual Studio solution file (`sleepy.sln`) to build everything else.
 
 ### Contributing
 
-If you'd like to contribute a patch, please [open a pull request](https://github.com/CyberShadow/verysleepy/pulls). I'll try to review and merge it as soon as my time will allow.
+If you'd like to contribute a patch, please [open a pull request](https://github.com/VerySleepy/verysleepy/pulls). I'll try to review and merge it as soon as my time will allow.
 
-Bug reports and feature requests are welcome as well - please file them as [GitHub issues](https://github.com/CyberShadow/verysleepy/issues).
+Bug reports and feature requests are welcome as well - please file them as [GitHub issues](https://github.com/VerySleepy/verysleepy/issues).

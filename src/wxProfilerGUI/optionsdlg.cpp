@@ -30,21 +30,21 @@ http://www.gnu.org/copyleft/gpl.html.
 class wxPercentSlider : public wxSlider
 {
 public:
-    wxPercentSlider(wxWindow *parent,
-             wxWindowID id,
-             int value,
-             int minValue,
-             int maxValue,
-             const wxPoint& pos = wxDefaultPosition,
-             const wxSize& size = wxDefaultSize,
-             long style = wxSL_HORIZONTAL,
-             const wxValidator& validator = wxDefaultValidator,
-             const wxString& name = wxSliderNameStr)
-    {
-        Init();
+	wxPercentSlider(wxWindow *parent,
+			wxWindowID id,
+			int value,
+			int minValue,
+			int maxValue,
+			const wxPoint& pos = wxDefaultPosition,
+			const wxSize& size = wxDefaultSize,
+			long style = wxSL_HORIZONTAL,
+			const wxValidator& validator = wxDefaultValidator,
+			const wxString& name = wxSliderNameStr)
+	{
+		Init();
 
-        Create(parent, id, value, minValue, maxValue, pos, size, style, validator, name);
-    }
+		Create(parent, id, value, minValue, maxValue, pos, size, style, validator, name);
+	}
 
 protected:
 
@@ -52,7 +52,7 @@ protected:
 	// Just go into include/wx/msw/slider.h, and change the definition of this
 	// from 'static' to 'virtual', and add a const modifier. Then you have to do
 	// a full 'make clean' and rebuild for it to take.
-    virtual wxString Format(int n) const { return wxString::Format(wxT("%d%%"), n); }
+	virtual wxString Format(int n) const { return wxString::Format(wxT("%d%%"), n); }
 };
 
 enum OptionsId
@@ -135,7 +135,7 @@ OptionsDlg::OptionsDlg()
 	mingwDrMingw->SetToolTip("Use Dr. MinGW's DbgHelp implementation for MinGW symbols (dbghelpdr.dll).");
 	minGwDbgHelpSizer->Add(mingwDrMingw);
 
-	(prefs.useWine ? mingwWine : mingwDrMingw)->SetValue(true);
+	(prefs.useWinePref ? mingwWine : mingwDrMingw)->SetValue(true);
 
 	wxBoxSizer *saveMinidumpSizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -209,7 +209,7 @@ OptionsDlg::~OptionsDlg()
 {
 }
 
-void OptionsDlg::OnOk(wxCommandEvent& event)
+void OptionsDlg::OnOk(wxCommandEvent& WXUNUSED(event))
 {
 	if ( Validate() && TransferDataFromWindow() )
 	{
@@ -217,14 +217,14 @@ void OptionsDlg::OnOk(wxCommandEvent& event)
 		prefs.useSymServer = useSymServer->GetValue();
 		prefs.symCacheDir = symCacheDir->GetPath();
 		prefs.symServer = symServer->GetValue();
-		prefs.useWine = mingwWine->GetValue();
+		prefs.useWinePref = mingwWine->GetValue();
 		prefs.saveMinidump = saveMinidump->GetValue() ? saveMinidumpTimeValue : -1;
 		prefs.throttle = throttle->GetValue();
 		EndModal(wxID_OK);
 	}
 }
 
-void OptionsDlg::OnUseSymServer(wxCommandEvent& event)
+void OptionsDlg::OnUseSymServer(wxCommandEvent& WXUNUSED(event))
 {
 	bool enabled = useSymServer->GetValue();
 	symCacheDir->Enable(enabled);
@@ -239,12 +239,12 @@ void OptionsDlg::UpdateSymPathButtons()
 	symPathMoveDown->Enable(sel >= 0 && sel < (int)symPaths->GetCount()-1);
 }
 
-void OptionsDlg::OnSymPath( wxCommandEvent & event )
+void OptionsDlg::OnSymPath(wxCommandEvent& WXUNUSED(event))
 {
 	UpdateSymPathButtons();
 }
 
-void OptionsDlg::OnSymPathAdd( wxCommandEvent & event )
+void OptionsDlg::OnSymPathAdd(wxCommandEvent& WXUNUSED(event))
 {
 	wxDirDialog dlg(this, "Select a symbol search path to add");
 	if (dlg.ShowModal()==wxID_OK)
@@ -255,7 +255,7 @@ void OptionsDlg::OnSymPathAdd( wxCommandEvent & event )
 	}
 }
 
-void OptionsDlg::OnSymPathRemove( wxCommandEvent & event )
+void OptionsDlg::OnSymPathRemove(wxCommandEvent& WXUNUSED(event))
 {
 	int sel = symPaths->GetSelection();
 	symPaths->Delete(sel);
@@ -264,7 +264,7 @@ void OptionsDlg::OnSymPathRemove( wxCommandEvent & event )
 	UpdateSymPathButtons();
 }
 
-void OptionsDlg::OnSymPathMoveUp( wxCommandEvent & event )
+void OptionsDlg::OnSymPathMoveUp(wxCommandEvent& WXUNUSED(event))
 {
 	int sel = symPaths->GetSelection();
 	wxString s = symPaths->GetString(sel);
@@ -274,7 +274,7 @@ void OptionsDlg::OnSymPathMoveUp( wxCommandEvent & event )
 	UpdateSymPathButtons();
 }
 
-void OptionsDlg::OnSymPathMoveDown( wxCommandEvent & event )
+void OptionsDlg::OnSymPathMoveDown(wxCommandEvent& WXUNUSED(event))
 {
 	int sel = symPaths->GetSelection();
 	wxString s = symPaths->GetString(sel);
@@ -284,7 +284,7 @@ void OptionsDlg::OnSymPathMoveDown( wxCommandEvent & event )
 	UpdateSymPathButtons();
 }
 
-void OptionsDlg::OnSaveMinidump( wxCommandEvent & event )
+void OptionsDlg::OnSaveMinidump(wxCommandEvent& WXUNUSED(event))
 {
 	saveMinidumpTime->Enable(saveMinidump->IsChecked());
 }

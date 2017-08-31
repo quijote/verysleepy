@@ -1,4 +1,4 @@
-/*=====================================================================
+﻿/*=====================================================================
 threadinfo.h
 ------------
 File created by ClassTemplate on Sun Mar 20 03:22:37 2005
@@ -55,6 +55,8 @@ public:
 	const std::wstring& getModules() const { return modules; }
 	void setModules(const std::wstring &m) { modules = m; }	
 
+	bool recalcUsage(int sampleTimeDiff);
+
 	FILETIME prevKernelTime, prevUserTime;
 	// DE: 20090325 Threads now have CPU usage
 	int cpuUsage;
@@ -70,7 +72,3 @@ private:
 
 
 #endif //__THREADINFO_H_666_
-
-
-
-

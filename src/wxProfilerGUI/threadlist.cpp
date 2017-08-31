@@ -1,4 +1,4 @@
-/*=====================================================================
+﻿/*=====================================================================
 threadList.cpp
 ---------------
 File created by ClassTemplate on Sun Mar 20 17:33:43 2005
@@ -62,7 +62,7 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 	InsertColumn(COL_TOTALCPU, itemCol);
 	itemCol.m_text = _T("TID");
 	InsertColumn(COL_ID, itemCol);
-	
+
 	SetColumnWidth(COL_LOCATION, 220);
 	SetColumnWidth(COL_MODULES, 110);
 	SetColumnWidth(COL_CPUUSAGE, 80);
@@ -71,7 +71,7 @@ ThreadList::ThreadList(wxWindow *parent, const wxPoint& pos,
 
 	sort_column = COL_CPUUSAGE;
 	sort_dir = SORT_DOWN;
-	SetSortImage(sort_column, sort_dir); 
+	SetSortImage(sort_column, sort_dir);
 
 	process_handle = NULL;
 	syminfo = NULL;
@@ -122,19 +122,7 @@ std::vector<const ThreadInfo*> ThreadList::getSelectedThreads(bool all)
 	return selectedThreads;
 }
 
-static __int64 getDiff(FILETIME before, FILETIME after)
-{
-	__int64 i0 = (__int64(before.dwHighDateTime) << 32) + before.dwLowDateTime;
-	__int64 i1 = (__int64( after.dwHighDateTime) << 32) +  after.dwLowDateTime;
-	return i1 - i0;
-}
-
-static __int64 getTotal(FILETIME time)
-{
-	return (__int64(time.dwHighDateTime) << 32) + time.dwLowDateTime;
-}
-
-void ThreadList::OnTimer(wxTimerEvent& event)
+void ThreadList::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
 	updateTimes();
 	updateLocationsAndModules();
@@ -276,7 +264,7 @@ void ThreadList::fillList()
 		this->SetItem(i, COL_TOTALCPU, formatDuration(threads[i].totalCpuTimeMs));
 
 		sprintf(str, "%d", threads[i].getID());
-		this->SetItem(i, COL_ID, str);		
+		this->SetItem(i, COL_ID, str);
 	}
 	Thaw();
 }
@@ -295,7 +283,7 @@ void ThreadList::updateThreads(const ProcessInfo* processInfo, SymbolInfo *symIn
 		this->syminfo = symInfo;
 
 		this->threads = processInfo->threads;		
-		
+
 		int numDisplayedThreads = getNumDisplayedThreads();
 		for(int i=0; i<numDisplayedThreads; ++i)
 		{
@@ -333,7 +321,10 @@ void ThreadList::updateTimes()
 		this->threads[i].setLocation(L"-");
 		this->threads[i].setModules(L"-");
 
-		HANDLE thread_handle = this->threads[i].getThreadHandle(); 
+		if (!this->threads[i].recalcUsage(sampleTimeDiff))
+			continue;
+
+		HANDLE thread_handle = this->threads[i].getThreadHandle();
 		if (thread_handle == NULL)
 			continue;
 		
@@ -364,6 +355,8 @@ void ThreadList::updateLocationsAndModules()
 {
 	for(int i=0; i<(int)this->threads.size(); ++i)
 	{
+		this->threads[i].setLocation(L"-");
+
 		if (i < MAX_NUM_THREAD_LOCATIONS) {
 			HANDLE thread_handle = this->threads[i].getThreadHandle(); 
 			if (thread_handle != NULL) {
@@ -440,7 +433,7 @@ void ThreadList::getLocation(HANDLE thread_handle, std::wstring& location, std::
 	{
 		std::wstring file;
 		int line;
-			
+
 		// Grab the name of the current IP location.
 		location = syminfo->getProcForAddr(profaddr, file, line);
 	} else {

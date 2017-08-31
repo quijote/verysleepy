@@ -78,12 +78,10 @@ private:
 	void sortModules();
 
 	friend BOOL CALLBACK EnumModules(PCWSTR ModuleName, DWORD64 BaseOfDll, PVOID UserContext);
+	void loadSymbolsUsing(DbgHelp* dbgHelp, const std::wstring& sympath);//throws SymbolInfoExcep
+	DbgHelp* getGccDbgHelp();
 };
 
 extern SymLogFn *g_symLog;
 
 #endif //__SYMBOLINFO_H_666_
-
-
-
-

@@ -26,6 +26,7 @@ http://www.gnu.org/copyleft/gpl.html.
 #include <wx/stattext.h>
 #include <wx/gauge.h>
 #include <wx/button.h>
+#include "../appinfo.h"
 
 // If like me your SDK doesn't have the newest Windows 7 stuff, define it here ourselves.
 // I swear they make this stuff complicated on purpose.
@@ -35,7 +36,7 @@ typedef enum THUMBBUTTONFLAGS {THBF_ENABLED = 0, THBF_DISABLED = 0x1, THBF_DISMI
 typedef enum THUMBBUTTONMASK {THB_BITMAP = 0x1, THB_ICON = 0x2, THB_TOOLTIP = 0x4, THB_FLAGS = 0x8} THUMBBUTTONMASK;
 typedef struct THUMBBUTTON {THUMBBUTTONMASK dwMask; UINT iId; UINT iBitmap; HICON hIcon; WCHAR szTip[260]; THUMBBUTTONFLAGS dwFlags; } THUMBBUTTON;
 typedef enum TBPFLAG  {TBPF_NOPROGRESS = 0, TBPF_INDETERMINATE = 0x1, TBPF_NORMAL = 0x2, TBPF_ERROR = 0x4, TBPF_PAUSED = 0x8 } TBPFLAG;
-#define THBN_CLICKED  0x1800    
+#define THBN_CLICKED  0x1800
 extern "C" {const GUID IID_ITaskbarList3 = { 0xEA1AFB91, 0x9E28, 0x4B86, {0x90, 0xE9, 0x9E, 0x9F, 0x8A, 0x5E, 0xEF, 0xAF} };}
 
 class ITaskbarList3 : public ITaskbarList2
@@ -49,7 +50,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE SetTabActive          (HWND hwndTab,  HWND hwndMDI, DWORD dwReserved) = 0;
 	virtual HRESULT STDMETHODCALLTYPE ThumbBarAddButtons    (HWND hwnd, UINT cButtons, THUMBBUTTON * pButton) = 0;
 	virtual HRESULT STDMETHODCALLTYPE ThumbBarUpdateButtons (HWND hwnd, UINT cButtons, THUMBBUTTON * pButton) = 0;
-	virtual HRESULT STDMETHODCALLTYPE ThumbBarSetImageList  (HWND hwnd, HIMAGELIST himl) = 0; 
+	virtual HRESULT STDMETHODCALLTYPE ThumbBarSetImageList  (HWND hwnd, HIMAGELIST himl) = 0;
 	virtual HRESULT STDMETHODCALLTYPE SetOverlayIcon        (HWND hwnd, HICON hIcon, LPCWSTR pszDescription) = 0;
 	virtual HRESULT STDMETHODCALLTYPE SetThumbnailTooltip   (HWND hwnd, LPCWSTR pszTip) = 0;
 	virtual HRESULT STDMETHODCALLTYPE SetThumbnailClip      (HWND hwnd, RECT *prcClip) = 0;
@@ -96,9 +97,9 @@ CaptureWin::CaptureWin()
 	pauseButton = new wxBitmapToggleButton(
 		panel, CaptureWin_Pause, pause, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW|wxBU_EXACTFIT );
 
-	wxButton *okButton = new wxButton(panel, wxID_OK, "Stop");
+	wxButton *okButton = new wxButton(panel, wxID_OK, "&Stop");
 	okButton->SetToolTip("Stop profiling and display collected results.");
-	wxButton *cancelButton = new wxButton(panel, wxID_CANCEL, "Abort");
+	wxButton *cancelButton = new wxButton(panel, wxID_CANCEL, "&Abort");
 	cancelButton->SetToolTip("Stop profiling, discard collected results, and exit.");
 
 	int border = ConvertDialogToPixels(wxSize(2, 0)).x;
@@ -210,7 +211,7 @@ void CaptureWin::OnPause(wxCommandEvent& event)
 	}
 }
 
-void CaptureWin::OnOk(wxCommandEvent& event)
+void CaptureWin::OnOk(wxCommandEvent& WXUNUSED(event))
 {
 	if (win7taskBar)
 	{
@@ -220,7 +221,7 @@ void CaptureWin::OnOk(wxCommandEvent& event)
 	stopped = true;
 }
 
-void CaptureWin::OnCancel(wxCommandEvent& event)
+void CaptureWin::OnCancel(wxCommandEvent& WXUNUSED(event))
 {
 	if (win7taskBar)
 	{

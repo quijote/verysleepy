@@ -1,4 +1,4 @@
-/*=====================================================================
+﻿/*=====================================================================
 profilergui.h
 -------------
 File created by ClassTemplate on Sun Mar 13 18:16:34 2005
@@ -41,11 +41,16 @@ http://www.gnu.org/copyleft/gpl.html.
 #include <vector>
 #include <map>
 
-#include "../appinfo.h"
-
 extern wxIcon sleepy_icon;
 
 class SymbolInfo;
+
+enum AttachMode
+{
+	ATTACH_ALL_THREAD,	// default
+	ATTACH_MAIN_THREAD,
+	ATTACH_MOST_BUSY_THREAD,
+};
 
 struct AttachInfo
 {
@@ -68,7 +73,8 @@ public:
 		useSymServer = false;
 		saveMinidump = -1;
 		throttle = 100;
-		useWine = false;
+		useWinePref = useWineSwitch = useMingwSwitch = false;
+		attachMode = ATTACH_ALL_THREAD;
 	}
 
 	wxString symSearchPath;
@@ -77,7 +83,17 @@ public:
 	wxString symServer;
 	int saveMinidump; // Save minidump after X seconds. -1 = disabled
 	int throttle;
-	bool useWine;
+
+	bool useWinePref, useWineSwitch, useMingwSwitch;
+	AttachMode attachMode;
+
+	bool UseWine()
+	{
+		return
+			useMingwSwitch ? false :
+			useWineSwitch ? true :
+			useWinePref;
+	}
 
 	// Add any configured search paths, and the symbol server if enabled.
 	void AdjustSymbolPath(std::wstring &sympath, bool download)
@@ -148,7 +164,3 @@ extern Prefs prefs;
 extern wxConfig config;
 
 #endif //__PROFILERGUI_H_666_
-
-
-
-
